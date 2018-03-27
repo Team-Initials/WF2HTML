@@ -1,0 +1,5 @@
+# Ignoring files which can be generated at runtime
+*.pyc
+
+# Ignoring files which are to be used by developers for debugging
+*.log
