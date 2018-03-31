@@ -372,6 +372,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow.Ui_MainWindow):
     def createAndOpenProject( self ):
         projectPath = QtGui.QFileDialog.getExistingDirectory( self, "Choose Project Directory" )
 
+        # This is a check for whether cancel button was clicked
         if projectPath.strip() == "" or projectPath == None:
             self.log( Loggers.msgNormal( "The project creation was cancelled." ) )
             return
@@ -396,6 +397,11 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow.Ui_MainWindow):
 
     def openWF2HTMLProject( self ):
         projectPath = QtGui.QFileDialog.getExistingDirectory( self, "Select Project" )
+
+        # This is a check for whether cancel button was clicked
+        if projectPath.strip() == "" or projectPath == None:
+            self.log( Loggers.msgNormal( "The project opening was cancelled." ) )
+            return
 
         if not ProjectManagers.isValidWF2HTMLProject( projectPath=projectPath ):
             self.logError( Loggers.msgNormal( "The directory is not a WF2HTML project. Either it was not created using this application, or the '__settings__.wf2html' file is missing" ))
@@ -432,9 +438,13 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow.Ui_MainWindow):
             files = files[0]
         else:
             files = QtGui.QFileDialog.getOpenFileName( self, "Open Image", dir=self.currentProjectPath )
-            files = [ files[0] ]
+            if files[0] == "" or files[0] == None:
+                files = []
+            else:
+                files = [ files[0] ]
 
         if not files:
+            self.log( Loggers.msgNormal( "No image(s) selected." ) )
             return
 
         if not directoryPath:
