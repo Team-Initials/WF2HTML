@@ -11,15 +11,14 @@
 
     ** NOTE: The line "from PySide import QtXml" must be present for pyinstaller to work properly on this function.
 """
-
-import sys
 import os
+import sys
 
 from PySide import QtCore, QtGui, QtWebKit
 
-from Designs.ui_py import Ui_MainWindow
-from API import FileManagers, Loggers, ProjectManagers, ImageProcessors, HtmlGenerators
 import Constants
+from API import FileManagers, Loggers, ProjectManagers, ImageProcessors, HtmlGenerators
+from Designs.ui_py import Ui_MainWindow
 
 # Importing PySide.QtXml for packaging purposes
 # pyinstaller could not detect it otherwise, and builds failed
@@ -43,7 +42,6 @@ class SplitScreenDialog(QtGui.QDialog):
         self.textEdit_cssDisplay.setReadOnly( False )
 
         self.webView = QtWebKit.QWebView()
-        self.webView.settings
         self.splitter_V = QtGui.QSplitter( QtCore.Qt.Vertical )
         self.splitter_V.addWidget( self.textEdit_htmlDisplay )
         self.splitter_V.addWidget( self.textEdit_cssDisplay )
@@ -69,7 +67,6 @@ class SplitScreenDialog(QtGui.QDialog):
     def updateCss( self ):
         text = self.textEdit_cssDisplay.toPlainText()
         FileManagers.writeToFile( text, self.currentCssPath )
-        self.webView
         self.webView.reload()
 
 
@@ -448,7 +445,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow.Ui_MainWindow):
                                                     destPath=directoryPath,
                                                     filename=os.path.basename(filePath))
                 self.logSuccess( message="Image opened successfully." )
-                self.generateDirTree() #os.path.join(directoryPath, os.path.basename(filePath)) )
+                self.generateDirTree()
             except Exception as e:
                 print e
                 self.label_pixmapContainer.clear()
