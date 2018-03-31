@@ -80,6 +80,9 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow.Ui_MainWindow):
         self.setupUi( self )
         self.showMaximized()
 
+        # Validate and clear the json file of invalid paths
+        ProjectManagers.validateCreatedProjects()
+
         # Add 4 most recent projects to the Recent Project menu option
         self.updateRecentProjects()
 

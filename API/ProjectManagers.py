@@ -131,6 +131,17 @@ def createProject( projectPath ):
     return projectCreationErrors
 
 
+def validateCreatedProjects():
+    projects = _getCreatedProjectsJson()
+    if not projects:
+        return
+    validatedProjects = []
+    for project in projects:
+        if project["path"] and os.path.exists(project["path"]):
+            validatedProjects.append( project )
+    _updateCreatedProjectsJson( validatedProjects )
+
+
 def deleteProject( projectPath ):
     _removeProjectDirectory( projectPath )
     _removeProjectFromJson( projectPath )
