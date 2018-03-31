@@ -372,6 +372,10 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow.Ui_MainWindow):
     def createAndOpenProject( self ):
         projectPath = QtGui.QFileDialog.getExistingDirectory( self, "Choose Project Directory" )
 
+        if projectPath.strip() == "" or projectPath == None:
+            self.log( Loggers.msgNormal( "The project creation was cancelled." ) )
+            return
+
         if ProjectManagers.isUsedProjectPath( projectPath=projectPath ):
             # Show a popup asking if the user wants to overwrite an old project
             confirmOverwrite = QtGui.QMessageBox.question( self, "Confirm Overwrite",
