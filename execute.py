@@ -17,7 +17,7 @@ import sys
 from PySide import QtCore, QtGui, QtWebKit
 
 import Constants
-from API import FileManagers, Loggers, ProjectManagers, ImageProcessors, HtmlGenerators
+from API import FileManagers, Loggers, ProjectManagers, ImageProcessors, HtmlGenerators, SystemCommands
 from Designs.ui_py import Ui_MainWindow
 
 # Importing PySide.QtXml for packaging purposes
@@ -111,7 +111,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow.Ui_MainWindow):
         if not self.currentImageShownPath:
             # Log that no image is chosen currently
             return
-        command = "mspaint " + self.currentImageShownPath
+        command = SystemCommands.SystemCommands["defaultImgEditor"][os.name] + " " + self.currentImageShownPath
         os.system( command )
 
     # =================================================================================================================
@@ -149,7 +149,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow.Ui_MainWindow):
         self.showPageInBrowser( htmlFilePath )
 
     def showPageInBrowser( self, htmlFilePath ):
-        command = "start " + htmlFilePath
+        command = SystemCommands.SystemCommands["defaultBrowser"][os.name] + " " + htmlFilePath
         os.system( command )
 
     # =================================================================================================================
