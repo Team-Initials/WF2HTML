@@ -13,7 +13,7 @@ import shutil
 import Constants
 
 from datetime import datetime
-from API import FileManagers
+from API import FileManagers, SettingsManager
 
 path_createdProjects = os.path.join( Constants.path_configs, "createdProjects.json" )
 
@@ -121,8 +121,8 @@ def createProject( projectPath ):
     if not os.path.isdir( projectPath ):
         os.mkdir( projectPath )
 
-    settingsFile = open( os.path.join(projectPath, "__settings__.wf2html"), "w" )
-    settingsFile.close()
+    # Creating the settings file and initialising with default settings
+    SettingsManager.generateDefaultSettings( projectPath )
 
     if not _saveProjectToJson( projectPath ):
         projectCreationErrors = "Could not update the JSON file for projects."
@@ -207,7 +207,7 @@ def isValidWF2HTMLProject( projectPath ):
     if not projectPath in allProjectPaths:
         return False
 
-    if not os.path.exists( os.path.join( projectPath, "__settings__.wf2html") ):
+    if not os.path.exists( os.path.join( projectPath, Constants.settingsFileName) ):
         return False
 
     return True

@@ -19,6 +19,7 @@ from PySide import QtCore, QtGui, QtWebKit
 import Constants
 from API import FileManagers, Loggers, ProjectManagers, ImageProcessors, HtmlGenerators, SystemCommands
 from Designs.ui_py import Ui_MainWindow
+from Dialogs import Settings
 
 # Importing PySide.QtXml for packaging purposes
 # pyinstaller could not detect it otherwise, and builds failed
@@ -29,7 +30,7 @@ from PySide import QtXml
 class SplitScreenDialog(QtGui.QDialog):
     def __init__(self, parent=None):
         super(SplitScreenDialog, self).__init__(parent)
-
+        # Prevents user from accessing the mainWindow when the Dialog is open
         self.currentHtmlPath = None
         self.currentCssPath = None
 
@@ -78,7 +79,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow.Ui_MainWindow):
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
         self.setupUi( self )
-        self.showMaximized()
+        # self.showMaximized()
 
         # Validate and clear the json file of invalid paths
         ProjectManagers.validateCreatedProjects()
@@ -90,6 +91,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow.Ui_MainWindow):
         self.actionNew_Image.triggered.connect( self.addImage )
         self.actionClear_Log.triggered.connect( self.clearLog )
         self.actionNew_Project.triggered.connect( self.createAndOpenProject )
+        self.actionSettings.triggered.connect( self.displaySettings )
         self.actionConvert_showInDialog.triggered.connect( self.convertCurrentImage_Dialog )
         self.actionConvert_showInBrowser.triggered.connect( self.converCurrentImage_Browser )
         self.actionEdit_MsPaint.triggered.connect( self.editImageMsPaint )
@@ -98,6 +100,15 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow.Ui_MainWindow):
 
         # Try and open last project
         self.openLastProject()
+
+
+    def displaySettings(self):
+        if self.currentProjectPath:
+            self.settingsDialog = Settings.SettingsDialog( projectPath=self.currentProjectPath, parent=self )
+            self.settingsDialog.show()
+        else:
+            self.logError( message=Loggers.msgNormal("A project must be opened before editing its settings.") )
+
 
     # =================================================================================================================
     # Editing
