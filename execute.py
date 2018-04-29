@@ -17,7 +17,7 @@ import sys
 from PySide import QtCore, QtGui, QtWebKit
 
 import Constants
-from API import FileManagers, Loggers, ProjectManagers, ImageProcessors, HtmlGenerators, SystemCommands
+from API import FileManagers, Loggers, ProjectManagers, ImageProcessors, HtmlGenerators, SystemCommands, SettingsManager
 from Designs.ui_py import Ui_MainWindow
 from Dialogs import Settings
 
@@ -28,26 +28,32 @@ from PySide import QtXml
 
 # Class for the Split Screen Display Window
 class SplitScreenDialog(QtGui.QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, htmlFilePath, cssFilePath, parent=None):
         super(SplitScreenDialog, self).__init__(parent)
         # Prevents user from accessing the mainWindow when the Dialog is open
-        self.currentHtmlPath = None
-        self.currentCssPath = None
+        self.currentHtmlPath = htmlFilePath
+        self.currentCssPath = cssFilePath
 
         self.hbox = QtGui.QHBoxLayout( self )
 
+        self.splitter_H = QtGui.QSplitter( QtCore.Qt.Horizontal )
+        self.splitter_V = QtGui.QSplitter(QtCore.Qt.Vertical)
+
         self.textEdit_htmlDisplay = QtGui.QPlainTextEdit( self )
         self.textEdit_htmlDisplay.setReadOnly( False )
+        self.textEdit_htmlDisplay.setPlainText( FileManagers.readFileContent( self.currentHtmlPath ))
+        self.textEdit_htmlDisplay.textChanged.connect(self.updateHtml)
+        self.splitter_V.addWidget(self.textEdit_htmlDisplay)
 
-        self.textEdit_cssDisplay = QtGui.QPlainTextEdit( self )
-        self.textEdit_cssDisplay.setReadOnly( False )
+        if cssFilePath != None:
+            self.textEdit_cssDisplay = QtGui.QPlainTextEdit( self )
+            self.textEdit_cssDisplay.setReadOnly( False )
+            self.textEdit_cssDisplay.setPlainText( FileManagers.readFileContent( self.currentCssPath ))
+            self.textEdit_cssDisplay.textChanged.connect(self.updateCss)
+            self.splitter_V.addWidget( self.textEdit_cssDisplay )
 
         self.webView = QtWebKit.QWebView()
-        self.splitter_V = QtGui.QSplitter( QtCore.Qt.Vertical )
-        self.splitter_V.addWidget( self.textEdit_htmlDisplay )
-        self.splitter_V.addWidget( self.textEdit_cssDisplay )
-
-        self.splitter_H = QtGui.QSplitter( QtCore.Qt.Horizontal )
+        self.webView.load( QtCore.QUrl.fromLocalFile( self.currentHtmlPath ) )
         self.splitter_H.addWidget( self.splitter_V )
         self.splitter_H.addWidget( self.webView )
 
@@ -55,9 +61,6 @@ class SplitScreenDialog(QtGui.QDialog):
         self.setLayout( self.hbox )
 
         self.setWindowTitle( 'Web Preview' )
-
-        self.textEdit_htmlDisplay.textChanged.connect( self.updateHtml )
-        self.textEdit_cssDisplay.textChanged.connect( self.updateCss )
 
     def updateHtml( self ):
         text = self.textEdit_htmlDisplay.toPlainText()
@@ -120,9 +123,10 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow.Ui_MainWindow):
 
     def editImageMsPaint( self ):
         if not self.currentImageShownPath:
-            # Log that no image is chosen currently
+            #TODO: Log that no image is chosen currently
             return
-        command = SystemCommands.SystemCommands["defaultImgEditor"][os.name] + " " + self.currentImageShownPath
+        # FIXME: Filenames can have quotes
+        command = SystemCommands.SystemCommands["defaultImgEditor"][os.name] + " '" + self.currentImageShownPath + "'"
         os.system( command )
 
     # =================================================================================================================
@@ -135,32 +139,34 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow.Ui_MainWindow):
             self.logError( Loggers.msgNormal( "No image is open currently. An image should be open for conversion." ) )
             return
         wireframeData = ImageProcessors.getWireframeDataFromImage( self.currentImageShownPath )
-        htmlFilePath = FileManagers.changeExtension( self.currentImageShownPath, targetExtension="html" )
-        cssFilePath = FileManagers.changeExtension( self.currentImageShownPath, targetExtension="css" )
-        HtmlGenerators.generateHtmlFromWireframeData( wireframeData, htmlFilePath, cssFilePath )
-        return htmlFilePath, cssFilePath
 
-    def convertCurrentImage_Dialog( self ):
-        htmlFilePath, cssFilePath = self.convertCurrentImage()
-        self.generateDirTree()
-        self.showSplitScreenPreview( htmlFilePath, cssFilePath )
+        cssType = SettingsManager.getCssType( self.currentProjectPath )
+        HtmlGenerators.generateHtmlFromWireframeData( wireframeData,
+                                                      self.currentImageShownPath,
+                                                      cssType=cssType )
 
     def showSplitScreenPreview( self, htmlFilePath, cssFilePath ):
-        self.splitScreenDialog = SplitScreenDialog( self )
-        self.splitScreenDialog.webView.load( QtCore.QUrl.fromLocalFile( htmlFilePath ) )
-        self.splitScreenDialog.currentHtmlPath = htmlFilePath
-        self.splitScreenDialog.textEdit_htmlDisplay.setPlainText( FileManagers.readFileContent( htmlFilePath ))
-        self.splitScreenDialog.currentCssPath = cssFilePath
-        self.splitScreenDialog.textEdit_cssDisplay.setPlainText( FileManagers.readFileContent( cssFilePath ))
+        self.splitScreenDialog = SplitScreenDialog( parent=self, htmlFilePath=htmlFilePath, cssFilePath=cssFilePath )
         self.splitScreenDialog.show()
 
-    def converCurrentImage_Browser( self ):
-        htmlFilePath, cssFilePath = self.convertCurrentImage()
+    def convertCurrentImage_Dialog( self ):
+        self.convertCurrentImage()
         self.generateDirTree()
+        cssFilePath = None
+        htmlFilePath = FileManagers.changeExtension( self.currentImageShownPath, "html" )
+        if SettingsManager.getCssType( self.currentProjectPath) == "External":
+            cssFilePath = FileManagers.changeExtension( self.currentImageShownPath, "css" )
+        self.showSplitScreenPreview( htmlFilePath, cssFilePath )
+
+    def converCurrentImage_Browser( self ):
+        self.convertCurrentImage()
+        self.generateDirTree()
+        htmlFilePath = FileManagers.changeExtension(self.currentImageShownPath, "html")
         self.showPageInBrowser( htmlFilePath )
 
     def showPageInBrowser( self, htmlFilePath ):
-        command = SystemCommands.SystemCommands["defaultBrowser"][os.name] + " " + htmlFilePath
+        #FIXME: Filenames can have quotes
+        command = SystemCommands.SystemCommands["defaultBrowser"][os.name] + " '" + htmlFilePath + "'"
         os.system( command )
 
     # =================================================================================================================

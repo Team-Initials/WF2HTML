@@ -97,7 +97,7 @@ class SettingsDialog(QtGui.QDialog):
         if fieldType=="comboBox":
             value = inputField.currentIndex()
         if value != None and id in SettingsManager.idValuePaths:
-            path = SettingsManager.idValuePaths[ id ]
+            path = SettingsManager.idValuePaths[ id ] + ".currentIndex"
             path = path.split(".")
             path = [ int(item) if item.isdigit() else item for item in path ]
             self._updateValue( self.projectSettings, path, value )
