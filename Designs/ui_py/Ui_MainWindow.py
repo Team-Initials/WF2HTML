@@ -56,9 +56,12 @@ class Ui_MainWindow(object):
 
         self.actionNew_Project = QtGui.QAction(MainWindow)
         self.actionOpen_Project = QtGui.QAction(MainWindow)
+        self.actionSettings = QtGui.QAction(MainWindow)
         self.menuFile.addAction(self.actionNew_Project)
         self.menuFile.addAction(self.actionOpen_Project)
         self.menuFile.addAction(self.menuOpen_Recent_Project.menuAction())
+        self.menuFile.addSeparator()
+        self.menuFile.addAction(self.actionSettings)
         self.menuFile.addSeparator()
         self.menuFile.addAction(self.menuNew.menuAction())
 
@@ -103,5 +106,6 @@ class Ui_MainWindow(object):
         self.actionNew_Project.setShortcut(QtGui.QApplication.translate("MainWindow", "Ctrl+Shift+N", None, QtGui.QApplication.UnicodeUTF8))
         self.actionOpen_Project.setText(QtGui.QApplication.translate("MainWindow", "Open Project", None, QtGui.QApplication.UnicodeUTF8))
         self.actionOpen_Project.setShortcut(QtGui.QApplication.translate("MainWindow", "Ctrl+Shift+O", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionSettings.setText(QtGui.QApplication.translate("MainWindow", "Settings", None, QtGui.QApplication.UnicodeUTF8))
         self.actionNo_recent_projects.setText(QtGui.QApplication.translate("MainWindow", "No recent projects", None, QtGui.QApplication.UnicodeUTF8))
 
