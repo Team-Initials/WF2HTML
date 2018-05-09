@@ -75,20 +75,22 @@ class SplitScreenDialog(QtGui.QDialog):
 
 
 class MainWindow(QtGui.QMainWindow, Ui_MainWindow.Ui_MainWindow):
-
     currentProjectPath = None
     currentImageShownPath = None
+    currentFolderShown = None
 
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
         self.setupUi( self )
-        # self.showMaximized()
+        self.showMaximized()
 
         # Validate and clear the json file of invalid paths
         ProjectManagers.validateCreatedProjects()
 
         # Add 4 most recent projects to the Recent Project menu option
         self.updateRecentProjects()
+
+        self.pixmapLabels = []
 
         # Adding event listeners
         self.actionNew_Image.triggered.connect( self.addImage )
@@ -104,6 +106,8 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow.Ui_MainWindow):
         # Try and open last project
         self.openLastProject()
 
+    # =================================================================================================================
+    # Displaying Settings
 
     def displaySettings(self):
         if self.currentProjectPath:
@@ -112,12 +116,12 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow.Ui_MainWindow):
         else:
             self.logError( message=Loggers.msgNormal("A project must be opened before editing its settings.") )
 
-
     # =================================================================================================================
     # Editing
+
     def refreshImage( self ):
         if not self.currentImageShownPath:
-            # Log that no image is chosen currently
+            #TODO: Log that no image is chosen currently
             return
         self.showImage( imagePath=self.currentImageShownPath )
 
@@ -125,7 +129,6 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow.Ui_MainWindow):
         if not self.currentImageShownPath:
             #TODO: Log that no image is chosen currently
             return
-        # FIXME: Filenames can have quotes
         command = SystemCommands.SystemCommands["defaultImgEditor"][os.name] + " '" + self.currentImageShownPath + "'"
         os.system( command )
 
@@ -135,15 +138,23 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow.Ui_MainWindow):
     # Managing image conversion
 
     def convertCurrentImage( self ):
-        if not self.currentImageShownPath:
+        if not self.currentFolderShown:
             self.logError( Loggers.msgNormal( "No image is open currently. An image should be open for conversion." ) )
             return
-        wireframeData = ImageProcessors.getWireframeDataFromImage( self.currentImageShownPath )
+        allWireFrameData = list()
+        startingDivIndex = 1
+        for image in ProjectManagers.getImagesInDirectory( self.currentFolderShown ):
+            wireFrameData, elementCount = ImageProcessors.getWireframeDataFromImage(
+                                                    imageFilePath=os.path.join( self.currentFolderShown, image ),
+                                                    startingDivIndex=startingDivIndex)
+            startingDivIndex = startingDivIndex + elementCount
+            allWireFrameData.append( wireFrameData )
 
         cssType = SettingsManager.getCssType( self.currentProjectPath )
-        HtmlGenerators.generateHtmlFromWireframeData( wireframeData,
-                                                      self.currentImageShownPath,
-                                                      cssType=cssType )
+        HtmlGenerators.generateHtmlFromWireframeData( allWireFrameData,
+                                                      imageFilePath=self.currentImageShownPath,
+                                                      cssType=cssType,
+                                                      imageLayoutDirection=SettingsManager.getMultipleImageLayoutDirection(self.currentFolderShown))
 
     def showSplitScreenPreview( self, htmlFilePath, cssFilePath ):
         self.splitScreenDialog = SplitScreenDialog( parent=self, htmlFilePath=htmlFilePath, cssFilePath=cssFilePath )
@@ -165,7 +176,6 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow.Ui_MainWindow):
         self.showPageInBrowser( htmlFilePath )
 
     def showPageInBrowser( self, htmlFilePath ):
-        #FIXME: Filenames can have quotes
         command = SystemCommands.SystemCommands["defaultBrowser"][os.name] + " '" + htmlFilePath + "'"
         os.system( command )
 
@@ -190,8 +200,6 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow.Ui_MainWindow):
             self.menuOpen_Recent_Project.addAction( self.recentProjectActions[index] )
 
     # ==================================================================================================================
-
-    # ==================================================================================================================
     # Managing directory tree context menu
 
     def getDirTreeFilePath( self, dirTreeItem ):
@@ -207,10 +215,9 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow.Ui_MainWindow):
             dirTreeDirPath = os.path.abspath( os.path.dirname( dirTreeDirPath ) )
         return dirTreeDirPath
 
-
+    # TODO: Make context menu options decativatable based on item type
     def addDirTreeContextMenu( self ):
         listOfActions = [ action.text() for action in self.treeWidget_dirTree.actions() ]
-
         if not "Add Image" in listOfActions:
             contextAction_addImage = QtGui.QAction( "Add Image", self.treeWidget_dirTree )
             self.treeWidget_dirTree.addAction( contextAction_addImage )
@@ -249,8 +256,6 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow.Ui_MainWindow):
         else:
             itemPath = self.getDirTreeFilePath( currentItem )
             self.deletePath( itemPath )
-
-    # ==================================================================================================================
 
     # ==================================================================================================================
     # Managing the directory tree on the left
@@ -347,16 +352,12 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow.Ui_MainWindow):
         self.insertPathInDirTree( parentNode=topLevelItem, path=path, type=type )
 
     # ==================================================================================================================
-
-    # ==================================================================================================================
     # Opening Project
 
     def dirTreeOpenImage( self, currentItem ):
         path = self.getDirTreeFilePath( currentItem )
         if FileManagers.isValidImageFile( path ):
             self.showImage( path )
-
-
 
     def openProject( self, projectPath ):
         if self.currentProjectPath:
@@ -373,14 +374,12 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow.Ui_MainWindow):
         self.clearImageView()
         self.updateRecentProjects()
 
-
     def openLastProject( self ):
         recentProjects = ProjectManagers.getRecentProjects()
         if not recentProjects:
             return
         else:
             self.openProject( projectPath=recentProjects[0]["path"])
-
 
     def openRecentProject( self ):
         projectPath = self.sender().text()
@@ -426,9 +425,8 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow.Ui_MainWindow):
         self.openProject( projectPath )
 
     # ==================================================================================================================
+    # Adding things to project
 
-    # ==================================================================================================================
-    # Adding an things to project
 
     def addDirectory( self, parentDirectory, newDirectoryName ):
         addingDirectory = ProjectManagers.addDirectoryInProject( parentDirectory, newDirectoryName )
@@ -438,11 +436,63 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow.Ui_MainWindow):
         else:
             self.logError( Loggers.msgNormal( addingDirectory["message"] ) )
 
+
     def showImage( self, imagePath ):
-        self.label_pixmapContainer.clear()
-        pixmap_ImageViewer = QtGui.QPixmap( imagePath )
+        self.clearImageView()
+        if not imagePath:
+            return
+        # Setting the global variables
         self.currentImageShownPath = imagePath
-        self.label_pixmapContainer.setPixmap( pixmap_ImageViewer.scaled( 650, 650, QtCore.Qt.KeepAspectRatio ) )
+        self.currentFolderShown = os.path.dirname(imagePath)
+
+        # Setting up the layout
+        self.imageDisplayAreaContents = QtGui.QWidget()
+        multipleImageLayoutDirection = SettingsManager.getMultipleImageLayoutDirection( self.currentProjectPath )
+        if multipleImageLayoutDirection == "Vertical":
+            self.imgDisplayLayout = QtGui.QVBoxLayout()
+        else:
+            self.imgDisplayLayout = QtGui.QHBoxLayout()
+
+        self.pixmapLabels = []
+        imagesInDirectory = ProjectManagers.getImagesInDirectory( directory=self.currentFolderShown )
+        for image in imagesInDirectory:
+            filePath = os.path.join( self.currentFolderShown, image )
+
+            # Create a label to contain the pixmap
+            tmp = QtGui.QLabel(self.imageDisplayAreaContents)
+            self.pixmapLabels.append( tmp )
+            label_pixmapContainer = self.pixmapLabels[-1]
+            label_pixmapContainer.setAlignment(QtCore.Qt.AlignCenter)
+            label_pixmapContainer.clear()
+
+            # Adding the image to the label
+            pixmap_ImageViewer = QtGui.QPixmap( filePath )
+            # label_pixmapContainer.setPixmap( pixmap_ImageViewer.scaled( 650, 650, QtCore.Qt.KeepAspectRatio ) )
+            if multipleImageLayoutDirection == "Vertical":
+                label_pixmapContainer.setPixmap( pixmap_ImageViewer.scaledToWidth( 700 ) )
+            else:
+                label_pixmapContainer.setPixmap( pixmap_ImageViewer.scaledToHeight( 500 ) )
+            self.imgDisplayLayout.addWidget( label_pixmapContainer )
+
+        # Setting the widget to make the item visible
+        self.imageDisplayAreaContents.setLayout( self.imgDisplayLayout )
+        self.imgDisplayScrollArea.setWidget( self.imageDisplayAreaContents )
+
+
+    def updateImageDisplay(self):
+        currentImagePath = self.currentImageShownPath
+        currentDirectoryPath = os.path.dirname( currentImagePath )
+        if not os.path.exists( currentImagePath ):
+            if not os.path.exists( currentDirectoryPath ):
+                self.currentImageShownPath = None
+            else:
+                remainingImages = ProjectManagers.getImagesInDirectory( currentDirectoryPath )
+                if len( remainingImages ) == 0:
+                    self.currentImageShownPath = None
+                    self.currentFolderShown = None
+                else:
+                    self.currentImageShownPath = os.path.join( currentDirectoryPath, remainingImages[0] )
+        self.showImage( imagePath=self.currentImageShownPath )
 
     def addImage( self, type="single", directoryPath=None ):
         if not self.currentProjectPath:
@@ -472,8 +522,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow.Ui_MainWindow):
             if not FileManagers.isValidImageFile( filePath=filePath ):
                 self.logError( message=Loggers.msgUnsupportedFiletype( filePath=filePath ) )
                 return
-
-            self.label_pixmapContainer.clear()
+            # TODO: Write code to clear image display
             try:
                 ProjectManagers.copyImageToProject( srcPath= os.path.dirname(filePath),
                                                     destPath=directoryPath,
@@ -482,10 +531,9 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow.Ui_MainWindow):
                 self.generateDirTree()
             except Exception as e:
                 print e
-                self.label_pixmapContainer.clear()
-                self.label_pixmapContainer.setText( "File opening failed." )
                 self.logError( message=Loggers.msgNormal( str(e) ) )
             else:
+                self.currentFolderShown = directoryPath
                 self.showImage( imagePath=os.path.join(directoryPath, os.path.basename(filePath)) )
         return
 
@@ -504,14 +552,15 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow.Ui_MainWindow):
         self.removeItemFromDirTree( itemPath )
         ProjectManagers.removeItemFromProject( itemPath )
         self.updateRecentProjects()
+        self.updateImageDisplay()
 
     def clearImageView( self ):
         self.currentImageShownPath = None
-        self.label_pixmapContainer.clear()
-        if not self.currentProjectPath:
-            self.label_pixmapContainer.setText( "Create a project ( Ctrl + Shift + N )" )
-        else:
-            self.label_pixmapContainer.setText( "Open new image ( Ctrl + N )" )
+        self.currentFolderShown = None
+        # Deleting all the items in the display
+        for image in self.pixmapLabels[::-1]:
+            image.setParent(None)
+            self.pixmapLabels.pop()
 
 
     def closeProject( self ):

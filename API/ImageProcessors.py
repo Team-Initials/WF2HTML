@@ -54,13 +54,13 @@ def getBoundingBox( contour ):
     return boundingBox
 
 
-def getDivDetailsFromContours( contoursObtained ):
+def getDivDetailsFromContours( contoursObtained, startingDivIndex ):
 
     wireframeData = dict()
     for index, contour in enumerate( contoursObtained ):
         boundingBox = getBoundingBox( contour )
         boundingBoxData = findBoundingBoxData( boundingBox )
-        wireframeData[ 'Obj%s' % (index + 1) ] = boundingBoxData
+        wireframeData[ 'Obj%s' % (index + startingDivIndex) ] = boundingBoxData
     return wireframeData
 
 
@@ -91,7 +91,7 @@ def makeShapesClear( image ):
     return image_blurred
 
 
-def getWireframeDataFromImage( imageFilePath ):
+def getWireframeDataFromImage( imageFilePath, startingDivIndex ):
     image = cv2.imread( imageFilePath )
 
     imageDetails = dict()
@@ -100,12 +100,12 @@ def getWireframeDataFromImage( imageFilePath ):
     edges = getEdges( image_clearedShapes )
     contoursObtained = getContours( edges )
     (contoursObtained, _) = contours.sort_contours( contoursObtained )
-    divDetails = getDivDetailsFromContours( contoursObtained )
+    divDetails = getDivDetailsFromContours( contoursObtained, startingDivIndex )
     wireframeData = {
         "divDetails": divDetails,
         "imageDetails": imageDetails
     }
-    return wireframeData
+    return (wireframeData, len(wireframeData))
 
 
 

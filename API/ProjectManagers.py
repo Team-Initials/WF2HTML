@@ -211,3 +211,12 @@ def isValidWF2HTMLProject( projectPath ):
         return False
 
     return True
+
+def getImagesInDirectory( directory ):
+    result = []
+    if not os.path.exists( directory ):
+        return result
+    for item in os.listdir( directory ):
+        if FileManagers.getFileExtension( item ) in Constants.allowedImageExtensions:
+            result.append( item )
+    return result
