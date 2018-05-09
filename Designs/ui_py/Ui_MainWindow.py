@@ -19,16 +19,17 @@ class Ui_MainWindow(object):
         self.treeWidget_dirTree = QtGui.QTreeWidget(self.widget_Main)
         self.treeWidget_dirTree.header().setVisible(False)
 
-        self.label_pixmapContainer = QtGui.QLabel(self.widget_Main)
-        self.label_pixmapContainer.setAlignment(QtCore.Qt.AlignCenter)
-        self.label_pixmapContainer.setSizePolicy( QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
+        self.imgDisplayScrollArea = QtGui.QScrollArea( self.widget_Main )
+        self.imgDisplayScrollArea.setAlignment(QtCore.Qt.AlignCenter)
+        # self.label_pixmapContainer = QtGui.QWidget(self.widget_Main)
+        # self.label_pixmapContainer.setSizePolicy( QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
 
         self.textarea_LogDisplay = QtGui.QTextEdit(self.widget_Main)
         self.textarea_LogDisplay.setReadOnly(True)
 
         self.splitter_H = QtGui.QSplitter( QtCore.Qt.Horizontal)
         self.splitter_H.addWidget( self.treeWidget_dirTree )
-        self.splitter_H.addWidget( self.label_pixmapContainer )
+        self.splitter_H.addWidget( self.imgDisplayScrollArea )
         self.splitter_H.setSizes([3000, 10000])
 
         self.splitter_V = QtGui.QSplitter( QtCore.Qt.Vertical)
@@ -88,7 +89,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QtGui.QApplication.translate("MainWindow", "WF2HTML", None, QtGui.QApplication.UnicodeUTF8))
-        self.label_pixmapContainer.setText(QtGui.QApplication.translate("MainWindow", "Create a project ( Ctrl + Shift + N )", None, QtGui.QApplication.UnicodeUTF8))
+        # self.label_pixmapContainer.setText(QtGui.QApplication.translate("MainWindow", "Create a project ( Ctrl + Shift + N )", None, QtGui.QApplication.UnicodeUTF8))
         self.menuFile.setTitle(QtGui.QApplication.translate("MainWindow", "File", None, QtGui.QApplication.UnicodeUTF8))
         self.menuNew.setTitle(QtGui.QApplication.translate("MainWindow", "New Image", None, QtGui.QApplication.UnicodeUTF8))
         self.menuOpen_Recent_Project.setTitle(QtGui.QApplication.translate("MainWindow", "Open Recent Project", None, QtGui.QApplication.UnicodeUTF8))

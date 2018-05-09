@@ -89,3 +89,10 @@ def getCssType( projectPath ):
     path = [ int(item) if item.isdigit() else item for item in path ]
     index = _getPathValue( settings, path + ["currentIndex"] )
     return _getPathValue( settings, path + ["possibleValues"])[ index ]
+
+def getMultipleImageLayoutDirection( projectPath ):
+    settings = getProjectSettings(projectPath)
+    path = idValuePaths["multiple-image-layout"].split(".")
+    path = [int(item) if item.isdigit() else item for item in path]
+    index = _getPathValue(settings, path + ["currentIndex"])
+    return _getPathValue(settings, path + ["possibleValues"])[index]
