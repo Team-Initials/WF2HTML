@@ -15,9 +15,13 @@ import os
 import sys
 
 from PySide import QtCore, QtGui, QtWebKit
+from PySide.QtCore import Slot
+from PySide.QtWebKit import QWebFrame
+
 
 import Constants
 from API import FileManagers, Loggers, ProjectManagers, ImageProcessors, HtmlGenerators, SystemCommands, SettingsManager
+from API import HtmlManager
 from Designs.ui_py import Ui_MainWindow
 from Dialogs import Settings
 
@@ -53,7 +57,9 @@ class SplitScreenDialog(QtGui.QDialog):
             self.splitter_V.addWidget( self.textEdit_cssDisplay )
 
         self.webView = QtWebKit.QWebView()
+        self.webFrame = self.webView.page().mainFrame()
         self.webView.load( QtCore.QUrl.fromLocalFile( self.currentHtmlPath ) )
+
         self.splitter_H.addWidget( self.splitter_V )
         self.splitter_H.addWidget( self.webView )
 
@@ -65,14 +71,27 @@ class SplitScreenDialog(QtGui.QDialog):
     def updateHtml( self ):
         text = self.textEdit_htmlDisplay.toPlainText()
         FileManagers.writeToFile( text, self.currentHtmlPath )
-        self.webView.load( QtCore.QUrl.fromLocalFile( self.currentHtmlPath ) )
 
+    def updateHtmlCode(self):
+        currentText = FileManagers.readFileContent(self.currentHtmlPath)
+        self.textEdit_htmlDisplay.clear()
+        self.textEdit_htmlDisplay.setPlainText( currentText )
+        self.refreshWebView()
 
     def updateCss( self ):
         text = self.textEdit_cssDisplay.toPlainText()
         FileManagers.writeToFile( text, self.currentCssPath )
         self.webView.reload()
 
+    def refreshWebView(self):
+        self.webView.deleteLater()
+        self.webView = QtWebKit.QWebView()
+        self.webFrame = self.webView.page().mainFrame()
+        self.webView.load(QtCore.QUrl.fromLocalFile(self.currentHtmlPath))
+        self.splitter_H.addWidget(self.webView)
+        # self.webView.reload()
+        # self.webView.repaint()
+        # self.webView.update()
 
 class MainWindow(QtGui.QMainWindow, Ui_MainWindow.Ui_MainWindow):
     currentProjectPath = None
@@ -82,7 +101,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow.Ui_MainWindow):
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
         self.setupUi( self )
-        self.showMaximized()
+        #self.showMaximized()
 
         # Validate and clear the json file of invalid paths
         ProjectManagers.validateCreatedProjects()
@@ -158,6 +177,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow.Ui_MainWindow):
 
     def showSplitScreenPreview( self, htmlFilePath, cssFilePath ):
         self.splitScreenDialog = SplitScreenDialog( parent=self, htmlFilePath=htmlFilePath, cssFilePath=cssFilePath )
+        self.splitScreenDialog.webFrame.addToJavaScriptWindowObject('WebViewController', self)
         self.splitScreenDialog.show()
 
     def convertCurrentImage_Dialog( self ):
@@ -427,7 +447,6 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow.Ui_MainWindow):
     # ==================================================================================================================
     # Adding things to project
 
-
     def addDirectory( self, parentDirectory, newDirectoryName ):
         addingDirectory = ProjectManagers.addDirectoryInProject( parentDirectory, newDirectoryName )
         if addingDirectory[ "status" ]:
@@ -580,15 +599,16 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow.Ui_MainWindow):
             ProjectManagers.deleteProject( projectPath=projectPath )
             self.updateRecentProjects()
 
-
-    # =================================================================================================================
-
     # =================================================================================================================
     # Loggers
     def clearLog( self ):
         self.textarea_LogDisplay.clear()
 
     def log( self, message ):
+        self.textarea_LogDisplay.insertHtml( message + "<br>" )
+
+    @Slot(str)
+    def logJs( self, message ):
         self.textarea_LogDisplay.insertHtml( message + "<br>" )
 
     def logError( self, message ):
@@ -598,6 +618,23 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow.Ui_MainWindow):
         self.log( "<span style='color: green;'>" + message + "</span>" )
 
     # =================================================================================================================
+    # Functions called from javascript
+
+    @Slot(str, str)
+    def changeHtmlTag(self, selectedId, targetTagType):
+        HtmlManager.changeHtmlTag(htmlFilePath=self.splitScreenDialog.currentHtmlPath, id=selectedId, targetTagType=targetTagType)
+        self.splitScreenDialog.updateHtmlCode()
+        self.splitScreenDialog.refreshWebView()
+        self.splitScreenDialog.webFrame.addToJavaScriptWindowObject('WebViewController', self)
+        self.splitScreenDialog.show()
+
+    @Slot(str)
+    def deleteHtmlElement( self, selectedId ):
+        HtmlManager.deleteHtmlElement( htmlFilePath=self.splitScreenDialog.currentHtmlPath, id=selectedId )
+        self.splitScreenDialog.updateHtmlCode()
+        self.splitScreenDialog.refreshWebView()
+        self.splitScreenDialog.webFrame.addToJavaScriptWindowObject('WebViewController', self)
+        self.splitScreenDialog.show()
 
 
 def main():
